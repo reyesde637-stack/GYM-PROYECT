@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym Tracker Aesthetic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Gym Progress Tracker</p>
+        <h1>Seguimiento simple, visual y listo para crecer.</h1>
+        <p class="hero-text">
+          Selecciona tu día de entrenamiento, registra cada set y guarda tu progreso
+          en Google Sheets con respaldo local temporal.
+        </p>
+      </div>
+
+      <div class="hero-panel">
+        <div class="date-label">Fecha de hoy</div>
+        <div id="current-date" class="date-value">--</div>
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span class="metric-label">Sets hoy</span>
+            <strong id="completed-sets-count">0</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Pendientes sync</span>
+            <strong id="pending-count">0</strong>
+          </div>
+        </div>
+        <button id="retry-sync-btn" class="secondary-button" type="button">
+          Reintentar envíos pendientes
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Rutina semanal</p>
+            <h2>Selecciona el día</h2>
+          </div>
+          <span class="panel-note">Upper / Lower / Descanso / Opcional</span>
+        </div>
+        <div id="day-grid" class="day-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Entrenamiento activo</p>
+            <h2 id="selected-day-title">Elige un día para ver ejercicios</h2>
+          </div>
+          <span id="selected-day-tag" class="day-tag muted">Sin selección</span>
+        </div>
+
+        <div id="day-summary" class="day-summary">
+          <p>Selecciona una tarjeta para cargar la rutina y comenzar a registrar sets.</p>
+        </div>
+
+        <div id="exercise-list" class="exercise-list"></div>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Historial rápido</p>
+            <h2>Registros del día</h2>
+          </div>
+          <button id="refresh-history-btn" class="secondary-button" type="button">
+            Actualizar historial
+          </button>
+        </div>
+
+        <div id="history-meta" class="history-meta">Sin registros todavía.</div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+
+      <section class="panel progress-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">Progreso visual</p>
+            <h2>Time series de rendimiento</h2>
+          </div>
+          <button id="refresh-progress-btn" class="secondary-button" type="button">
+            Actualizar progreso
+          </button>
+        </div>
+
+        <div class="progress-toolbar">
+          <label class="toolbar-field">
+            <span>Ejercicio</span>
+            <select id="progress-exercise-select"></select>
+          </label>
+
+          <label class="toolbar-field">
+            <span>Métrica</span>
+            <select id="progress-metric-select">
+              <option value="weightMax">Peso máximo</option>
+              <option value="repsMax">Reps máximas</option>
+              <option value="volume">Volumen (peso x reps)</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="progress-summary" class="progress-summary">
+          Selecciona un ejercicio para ver su evolución.
+        </div>
+
+        <div id="progress-chart-shell" class="progress-chart-shell">
+          <div id="progress-chart-empty" class="empty-state">
+            Aún no hay suficientes datos para construir la serie temporal.
+          </div>
+          <svg
+            id="progress-chart"
+            class="progress-chart hidden"
+            viewBox="0 0 760 300"
+            preserveAspectRatio="none"
+            aria-label="Gráfico de progreso"
+          ></svg>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="set-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal="true"></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div>
+          <p class="section-kicker">Registrar progreso</p>
+          <h3 id="modal-title">Nuevo set</h3>
+        </div>
+        <button id="close-modal-btn" class="icon-button" type="button" aria-label="Cerrar">
+          ×
+        </button>
+      </div>
+
+      <form id="set-form" class="modal-form">
+        <div class="form-grid">
+          <label>
+            <span>Fecha</span>
+            <input id="date-input" name="fecha" type="date" required>
+          </label>
+
+          <label>
+            <span>Día de rutina</span>
+            <input id="day-input" name="diaRutina" type="text" readonly required>
+          </label>
+
+          <label class="full-width">
+            <span>Ejercicio</span>
+            <input id="exercise-input" name="ejercicio" type="text" readonly required>
+          </label>
+
+          <label>
+            <span>Número de set</span>
+            <input id="set-number-input" name="setNumber" type="number" min="1" required>
+          </label>
+
+          <label>
+            <span>Peso usado</span>
+            <input id="weight-input" name="peso" type="number" min="0" step="0.1" placeholder="Ej. 60">
+          </label>
+
+          <label>
+            <span>Reps realizadas</span>
+            <input id="reps-done-input" name="repsRealizadas" type="number" min="0" required>
+          </label>
+
+          <label>
+            <span>Reps objetivo</span>
+            <input id="reps-target-input" name="repsObjetivo" type="text" readonly required>
+          </label>
+
+          <label>
+            <span>¿Cumplí objetivo?</span>
+            <select id="goal-hit-input" name="cumplioObjetivo" required>
+              <option value="Sí">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </label>
+
+          <label>
+            <span>¿Superé objetivo?</span>
+            <select id="goal-over-input" name="superoObjetivo" required>
+              <option value="No">No</option>
+              <option value="Sí">Sí</option>
+            </select>
+          </label>
+
+          <label class="full-width">
+            <span>Notas opcionales</span>
+            <textarea id="notes-input" name="notas" rows="3" placeholder="Sensaciones, técnica, RIR, tempo, etc."></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancel-modal-btn" class="secondary-button" type="button">Cancelar</button>
+          <button id="save-set-btn" class="primary-button" type="submit">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
