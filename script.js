@@ -4,7 +4,8 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwh3w7KQGailaIX
 const STORAGE_KEYS = {
   records: "gym-tracker-records",
   pending: "gym-tracker-pending",
-  selectedDay: "gym-tracker-selected-day"
+  selectedDay: "gym-tracker-selected-day",
+  preferredWeightUnit: "gym-tracker-preferred-weight-unit"
 };
 
 const routineDays = [
@@ -147,6 +148,7 @@ function cacheElements() {
   elements.refreshProgressBtn = document.getElementById("refresh-progress-btn");
   elements.progressExerciseSelect = document.getElementById("progress-exercise-select");
   elements.progressMetricSelect = document.getElementById("progress-metric-select");
+  elements.progressUnitSelect = document.getElementById("progress-unit-select");
   elements.progressSummary = document.getElementById("progress-summary");
   elements.progressChart = document.getElementById("progress-chart");
   elements.progressChartEmpty = document.getElementById("progress-chart-empty");
@@ -161,6 +163,7 @@ function cacheElements() {
   elements.exerciseInput = document.getElementById("exercise-input");
   elements.setNumberInput = document.getElementById("set-number-input");
   elements.weightInput = document.getElementById("weight-input");
+  elements.weightUnitInput = document.getElementById("weight-unit-input");
   elements.repsDoneInput = document.getElementById("reps-done-input");
   elements.repsTargetInput = document.getElementById("reps-target-input");
   elements.goalHitInput = document.getElementById("goal-hit-input");
@@ -174,6 +177,10 @@ function bindEvents() {
   elements.refreshProgressBtn.addEventListener("click", () => refreshProgressFromServer(true));
   elements.progressExerciseSelect.addEventListener("change", renderProgressChart);
   elements.progressMetricSelect.addEventListener("change", renderProgressChart);
+  elements.progressUnitSelect.addEventListener("change", renderProgressChart);
+  elements.weightUnitInput.addEventListener("change", () => {
+    localStorage.setItem(STORAGE_KEYS.preferredWeightUnit, elements.weightUnitInput.value);
+  });
   elements.closeModalBtn.addEventListener("click", closeModal);
   elements.cancelModalBtn.addEventListener("click", closeModal);
   elements.setForm.addEventListener("submit", handleSetSubmit);
@@ -358,6 +365,7 @@ function openRegisterModal(dayId, exerciseIndex) {
   elements.setNumberInput.value = String(nextSetNumber);
   elements.setNumberInput.max = String(Math.max(exercise.targetSets, nextSetNumber));
   elements.weightInput.value = "";
+  elements.weightUnitInput.value = localStorage.getItem(STORAGE_KEYS.preferredWeightUnit) || "kg";
   elements.repsDoneInput.value = "";
   elements.repsTargetInput.value = exercise.targetReps;
   elements.goalHitInput.value = "Sí";
@@ -392,6 +400,7 @@ async function handleSetSubmit(event) {
     ejercicio: elements.exerciseInput.value,
     set: Number(elements.setNumberInput.value),
     peso: normalizeOptionalNumber(elements.weightInput.value),
+    unidadPeso: elements.weightUnitInput.value || "kg",
     repsRealizadas: Number(elements.repsDoneInput.value),
     repsObjetivo: elements.repsTargetInput.value,
     cumplioObjetivo: elements.goalHitInput.value,
@@ -543,6 +552,7 @@ function mergeRemoteRecords(remoteRecords) {
     ejercicio: record.ejercicio,
     set: Number(record.set),
     peso: record.peso === "" ? "" : Number(record.peso),
+    unidadPeso: record.unidadPeso || "kg",
     repsRealizadas: Number(record.repsRealizadas),
     repsObjetivo: record.repsObjetivo,
     cumplioObjetivo: record.cumplioObjetivo,
@@ -651,7 +661,7 @@ function renderHistory() {
       </div>
       <div class="meta-line">
         <span class="mini-pill">Set ${record.set}</span>
-        <span class="mini-pill">Peso: ${record.peso === "" ? "-" : record.peso}</span>
+        <span class="mini-pill">Peso: ${record.peso === "" ? "-" : `${record.peso} ${record.unidadPeso || "kg"}`}</span>
         <span class="mini-pill">Reps: ${record.repsRealizadas}</span>
         <span class="mini-pill">Objetivo: ${record.repsObjetivo}</span>
       </div>
@@ -720,6 +730,7 @@ async function deleteRecordFromAppsScript(record) {
         ejercicio: record.ejercicio,
         set: record.set,
         peso: record.peso,
+        unidadPeso: record.unidadPeso || "kg",
         repsRealizadas: record.repsRealizadas,
         timestamp: record.timestamp || "",
         notas: record.notas || ""
@@ -817,27 +828,54 @@ function populateProgressExerciseSelect() {
 function renderProgressChart() {
   const exercise = elements.progressExerciseSelect.value;
   const metric = elements.progressMetricSelect.value;
-  const points = buildProgressSeries(exercise, metric);
+  const unit = elements.progressUnitSelect.value;
+  const seriesResult = buildProgressSeries(exercise, metric, unit);
+  const points = seriesResult.points;
 
   if (!exercise || points.length === 0) {
     elements.progressChart.classList.add("hidden");
     elements.progressChartEmpty.classList.remove("hidden");
-    elements.progressSummary.textContent = exercise
-      ? "Aún no hay datos suficientes para ese ejercicio."
-      : "Selecciona un ejercicio para ver su evolución.";
+    elements.progressSummary.textContent = seriesResult.message
+      || (exercise
+        ? "Aún no hay datos suficientes para ese ejercicio."
+        : "Selecciona un ejercicio para ver su evolución.");
     return;
   }
 
   elements.progressChart.classList.remove("hidden");
   elements.progressChartEmpty.classList.add("hidden");
   elements.progressChart.innerHTML = buildChartSvg(points);
-  elements.progressSummary.textContent = buildProgressSummary(exercise, metric, points);
+  elements.progressSummary.textContent = buildProgressSummary(exercise, metric, seriesResult.unitHint || unit, points);
 }
 
-function buildProgressSeries(exercise, metric) {
+function buildProgressSeries(exercise, metric, unit) {
   const records = state.records
-    .filter((record) => record.ejercicio === exercise && record.fecha)
+    .filter((record) => {
+      if (record.ejercicio !== exercise || !record.fecha) {
+        return false;
+      }
+
+      if (unit === "all") {
+        return true;
+      }
+
+      return (record.unidadPeso || "kg") === unit;
+    })
     .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+
+  const allExerciseUnits = Array.from(new Set(
+    state.records
+      .filter((record) => record.ejercicio === exercise)
+      .map((record) => record.unidadPeso || "kg")
+  ));
+
+  if ((metric === "weightMax" || metric === "volume") && unit === "all" && allExerciseUnits.length > 1) {
+    return {
+      points: [],
+      message: "Selecciona kg o lb para esa métrica y evitar mezclar unidades.",
+      unitHint: unit
+    };
+  }
 
   const grouped = new Map();
 
@@ -858,7 +896,7 @@ function buildProgressSeries(exercise, metric) {
     });
   });
 
-  return Array.from(grouped.entries()).map(([date, values]) => {
+  const points = Array.from(grouped.entries()).map(([date, values]) => {
     let value = 0;
 
     if (metric === "repsMax") {
@@ -874,16 +912,23 @@ function buildProgressSeries(exercise, metric) {
       value: Number(value.toFixed(2))
     };
   }).filter((point) => Number.isFinite(point.value));
+
+  return {
+    points,
+    message: "",
+    unitHint: unit === "all" && allExerciseUnits.length === 1 ? allExerciseUnits[0] : unit
+  };
 }
 
-function buildProgressSummary(exercise, metric, points) {
+function buildProgressSummary(exercise, metric, unit, points) {
   const metricLabel = getMetricLabel(metric);
   const first = points[0];
   const last = points[points.length - 1];
   const delta = Number((last.value - first.value).toFixed(2));
   const deltaLabel = delta === 0 ? "sin cambio neto" : `${delta > 0 ? "+" : ""}${delta}`;
+  const unitLabel = metric === "repsMax" ? "" : unit === "all" ? " (todas las unidades)" : ` (${unit})`;
 
-  return `${exercise}: ${metricLabel} actual ${formatMetricValue(metric, last.value)}. Cambio acumulado ${deltaLabel} desde ${first.date}.`;
+  return `${exercise}: ${metricLabel}${unitLabel} actual ${formatMetricValue(metric, last.value, unit)}. Cambio acumulado ${deltaLabel} desde ${first.date}.`;
 }
 
 function buildChartSvg(points) {
@@ -1097,6 +1142,7 @@ function buildLocalDedupKey(record) {
     record.set,
     record.repsRealizadas,
     record.peso,
+    record.unidadPeso || "kg",
     record.notas
   ].join("|");
 }
@@ -1127,16 +1173,16 @@ function getMetricLabel(metric) {
   return "peso máximo";
 }
 
-function formatMetricValue(metric, value) {
+function formatMetricValue(metric, value, unit = "kg") {
   if (metric === "volume") {
-    return `${formatAxisValue(value)} kg-reps`;
+    return `${formatAxisValue(value)} ${unit === "all" ? "u-reps" : `${unit}-reps`}`;
   }
 
   if (metric === "repsMax") {
     return `${formatAxisValue(value)} reps`;
   }
 
-  return `${formatAxisValue(value)} kg`;
+  return `${formatAxisValue(value)} ${unit === "all" ? "u" : unit}`;
 }
 
 function formatAxisValue(value) {

@@ -111,6 +111,15 @@
               <option value="volume">Volumen (peso x reps)</option>
             </select>
           </label>
+
+          <label class="toolbar-field">
+            <span>Unidad</span>
+            <select id="progress-unit-select">
+              <option value="all">Todas</option>
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </label>
         </div>
 
         <div id="progress-summary" class="progress-summary">
@@ -173,6 +182,14 @@
           <label>
             <span>Peso usado</span>
             <input id="weight-input" name="peso" type="number" min="0" step="0.1" placeholder="Ej. 60">
+          </label>
+
+          <label>
+            <span>Unidad de peso</span>
+            <select id="weight-unit-input" name="unidadPeso" required>
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
           </label>
 
           <label>

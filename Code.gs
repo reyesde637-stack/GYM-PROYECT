@@ -15,7 +15,8 @@ const HEADERS = [
   "CumplioObjetivo",
   "SuperoObjetivo",
   "Notas",
-  "RecordId"
+  "RecordId",
+  "UnidadPeso"
 ];
 
 function doGet(e) {
@@ -76,7 +77,8 @@ function doPost(e) {
       payload.cumplioObjetivo,
       payload.superoObjetivo,
       payload.notas || "",
-      recordId
+      recordId,
+      payload.unidadPeso || "kg"
     ]);
 
     return jsonOutput_({
@@ -179,6 +181,7 @@ function findRowIndexToDelete_(rows, payload) {
     var exactWeightAndNotes = fallbackCandidates.find(function(row) {
       return (
         normalizeNumber_(row.peso) === normalizeNumber_(payload.peso) &&
+        normalizeString_(row.unidadPeso) === normalizeString_(payload.unidadPeso || "kg") &&
         normalizeString_(row.notas) === normalizeString_(payload.notas)
       );
     });
@@ -216,7 +219,8 @@ function getAllRecords_() {
       repsObjetivo: row.repsObjetivo,
       cumplioObjetivo: row.cumplioObjetivo,
       superoObjetivo: row.superoObjetivo,
-      notas: row.notas || ""
+      notas: row.notas || "",
+      unidadPeso: row.unidadPeso || "kg"
     };
   });
 }
@@ -265,7 +269,8 @@ function mapRow_(row, headerMap, sheetRowIndex) {
     cumplioObjetivo: String(getCell_(row, headerMap, "CumplioObjetivo") || ""),
     superoObjetivo: String(getCell_(row, headerMap, "SuperoObjetivo") || ""),
     notas: String(getCell_(row, headerMap, "Notas") || ""),
-    recordId: String(getCell_(row, headerMap, "RecordId") || "")
+    recordId: String(getCell_(row, headerMap, "RecordId") || ""),
+    unidadPeso: String(getCell_(row, headerMap, "UnidadPeso") || "kg")
   };
 }
 
