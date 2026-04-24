@@ -64,26 +64,20 @@ function doPost(e) {
 
     const sheet = getSheet_();
     const recordId = payload.id || payload.recordId || Utilities.getUuid();
+    const rows = getRawRows_();
+    const rowToUpsert = findRowIndexToUpsert_(rows, payload, recordId);
+    const values = buildRowValues_(payload, recordId);
 
-    sheet.appendRow([
-      new Date(),
-      payload.fecha,
-      payload.diaRutina,
-      payload.ejercicio,
-      payload.set,
-      payload.peso === "" ? "" : payload.peso,
-      payload.repsRealizadas,
-      payload.repsObjetivo,
-      payload.cumplioObjetivo,
-      payload.superoObjetivo,
-      payload.notas || "",
-      recordId,
-      payload.unidadPeso || "kg"
-    ]);
+    if (rowToUpsert) {
+      sheet.getRange(rowToUpsert, 1, 1, HEADERS.length).setValues([values]);
+    } else {
+      sheet.appendRow(values);
+    }
 
     return jsonOutput_({
       success: true,
-      message: "Registro guardado correctamente",
+      message: rowToUpsert ? "Registro actualizado correctamente" : "Registro guardado correctamente",
+      replaced: Boolean(rowToUpsert),
       recordId: recordId
     });
   } catch (error) {
@@ -150,6 +144,48 @@ function deleteRecord_(payload) {
     success: true,
     message: "Registro borrado correctamente"
   };
+}
+
+function buildRowValues_(payload, recordId) {
+  return [
+    new Date(),
+    payload.fecha,
+    payload.diaRutina,
+    payload.ejercicio,
+    payload.set,
+    payload.peso === "" ? "" : payload.peso,
+    payload.repsRealizadas,
+    payload.repsObjetivo,
+    payload.cumplioObjetivo,
+    payload.superoObjetivo,
+    payload.notas || "",
+    recordId,
+    payload.unidadPeso || "kg"
+  ];
+}
+
+function findRowIndexToUpsert_(rows, payload, recordId) {
+  for (var i = 0; i < rows.length; i += 1) {
+    var row = rows[i];
+
+    if (recordId && row.recordId && recordId === row.recordId) {
+      return row.sheetRowIndex;
+    }
+  }
+
+  for (var j = 0; j < rows.length; j += 1) {
+    var candidate = rows[j];
+    if (
+      normalizeString_(candidate.fecha) === normalizeString_(payload.fecha) &&
+      normalizeString_(candidate.diaRutina) === normalizeString_(payload.diaRutina) &&
+      normalizeString_(candidate.ejercicio) === normalizeString_(payload.ejercicio) &&
+      normalizeNumber_(candidate.set) === normalizeNumber_(payload.set)
+    ) {
+      return candidate.sheetRowIndex;
+    }
+  }
+
+  return 0;
 }
 
 function findRowIndexToDelete_(rows, payload) {

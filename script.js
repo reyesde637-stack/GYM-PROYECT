@@ -252,7 +252,8 @@ const state = {
   activeExercise: null,
   records: loadJson(STORAGE_KEYS.records, []),
   pendingRecords: loadJson(STORAGE_KEYS.pending, []),
-  deletingRecordId: ""
+  deletingRecordId: "",
+  deleteCandidateId: ""
 };
 
 const elements = {};
@@ -296,6 +297,10 @@ function cacheElements() {
   elements.closeModalBtn = document.getElementById("close-modal-btn");
   elements.cancelModalBtn = document.getElementById("cancel-modal-btn");
   elements.saveSetBtn = document.getElementById("save-set-btn");
+  elements.deleteModal = document.getElementById("delete-modal");
+  elements.deleteModalText = document.getElementById("delete-modal-text");
+  elements.deleteModalCancelBtn = document.getElementById("delete-modal-cancel-btn");
+  elements.deleteModalConfirmBtn = document.getElementById("delete-modal-confirm-btn");
   elements.toast = document.getElementById("toast");
   elements.dateInput = document.getElementById("date-input");
   elements.dayInput = document.getElementById("day-input");
@@ -322,6 +327,8 @@ function bindEvents() {
   });
   elements.closeModalBtn.addEventListener("click", closeModal);
   elements.cancelModalBtn.addEventListener("click", closeModal);
+  elements.deleteModalCancelBtn.addEventListener("click", closeDeleteModal);
+  elements.deleteModalConfirmBtn.addEventListener("click", confirmDeleteRecord);
   elements.setForm.addEventListener("submit", handleSetSubmit);
 
   document.addEventListener("click", (event) => {
@@ -349,18 +356,24 @@ function bindEvents() {
 
     const deleteButton = target.closest("[data-delete-record]");
     if (deleteButton) {
-      deleteRecord(deleteButton.dataset.deleteRecord);
+      openDeleteModal(deleteButton.dataset.deleteRecord);
       return;
     }
 
     if (target.matches("[data-close-modal='true']")) {
       closeModal();
+      closeDeleteModal();
     }
   });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.modal.classList.contains("hidden")) {
       closeModal();
+      return;
+    }
+
+    if (event.key === "Escape" && !elements.deleteModal.classList.contains("hidden")) {
+      closeDeleteModal();
     }
   });
 }
@@ -537,6 +550,25 @@ function closeModal() {
   elements.modal.setAttribute("aria-hidden", "true");
 }
 
+function openDeleteModal(recordId) {
+  const record = state.records.find((item) => (item.id || buildRemoteRecordId(item)) === recordId);
+  if (!record) {
+    showToast("No se encontro el registro a borrar.", "error");
+    return;
+  }
+
+  state.deleteCandidateId = recordId;
+  elements.deleteModalText.textContent = `¿Seguro que quieres quitar el set ${record.set} de ${record.ejercicio}? Esta acción también intentará borrarlo en Google Sheets.`;
+  elements.deleteModal.classList.remove("hidden");
+  elements.deleteModal.setAttribute("aria-hidden", "false");
+}
+
+function closeDeleteModal() {
+  state.deleteCandidateId = "";
+  elements.deleteModal.classList.add("hidden");
+  elements.deleteModal.setAttribute("aria-hidden", "true");
+}
+
 async function handleSetSubmit(event) {
   event.preventDefault();
 
@@ -568,15 +600,19 @@ async function handleSetSubmit(event) {
     return;
   }
 
+  const existingRecord = findExistingSetRecord(payload);
+  const nextRecordId = existingRecord ? (existingRecord.id || existingRecord.recordId || "") : "";
+
   // Guardamos primero en local para no perder el dato aunque falle el envio remoto.
   const localRecord = {
-    id: generateRecordId(),
+    id: nextRecordId || generateRecordId(),
     timestamp: new Date().toISOString(),
     synced: false,
     ...payload
   };
 
-  state.records.unshift(localRecord);
+  upsertLocalRecord(localRecord, existingRecord);
+  removePendingRecord(localRecord.id);
   persistRecords();
   closeModal();
   renderSelectedDay();
@@ -594,7 +630,7 @@ async function handleSetSubmit(event) {
     renderHistory();
     renderProgressChart();
     updateDashboardCounts();
-    showToast("Set guardado correctamente en Google Sheets.", "success");
+    showToast(existingRecord ? "Set reemplazado correctamente." : "Set guardado correctamente en Google Sheets.", "success");
     return;
   }
 
@@ -602,7 +638,7 @@ async function handleSetSubmit(event) {
   renderHistory();
   renderProgressChart();
   updateDashboardCounts();
-  showToast("No se pudo enviar. El registro quedo guardado localmente para reintento.", "error");
+  showToast(existingRecord ? "No se pudo reemplazar en Sheets. El cambio quedó guardado localmente para reintento." : "No se pudo enviar. El registro quedo guardado localmente para reintento.", "error");
 }
 
 function validatePayload(payload, exercise) {
@@ -838,11 +874,6 @@ async function deleteRecord(recordId) {
     return;
   }
 
-  const confirmed = window.confirm(`¿Borrar el set ${record.set} de ${record.ejercicio}?`);
-  if (!confirmed) {
-    return;
-  }
-
   state.deletingRecordId = recordId;
   renderHistory();
 
@@ -863,6 +894,17 @@ async function deleteRecord(recordId) {
 
   removeRecordEverywhere(recordId);
   showToast("Set borrado correctamente.", "success");
+}
+
+async function confirmDeleteRecord() {
+  const recordId = state.deleteCandidateId;
+  closeDeleteModal();
+
+  if (!recordId) {
+    return;
+  }
+
+  await deleteRecord(recordId);
 }
 
 async function deleteRecordFromAppsScript(record) {
@@ -1193,9 +1235,11 @@ function getTodayRecords() {
 }
 
 function getCompletedSetsCount(day, exercise) {
-  return getTodayRecords().filter((record) => {
+  const setNumbers = getTodayRecords().filter((record) => {
     return record.diaRutina === `${day.label} - ${day.title}` && record.ejercicio === exercise.name;
-  }).length;
+  }).map((record) => Number(record.set));
+
+  return new Set(setNumbers).size;
 }
 
 function getSelectedDay() {
@@ -1269,7 +1313,7 @@ function attachHistoryDeleteListeners() {
   elements.historyList.querySelectorAll("[data-delete-record]").forEach((button) => {
     button.onclick = (event) => {
       event.stopPropagation();
-      deleteRecord(button.dataset.deleteRecord);
+      openDeleteModal(button.dataset.deleteRecord);
     };
   });
 }
@@ -1304,6 +1348,39 @@ function createExercise(name, setsLabel) {
     guideUrl: libraryEntry.guideUrl || "",
     guideLabel: libraryEntry.guideLabel || ""
   };
+}
+
+function findExistingSetRecord(payload) {
+  return state.records.find((record) => {
+    return record.fecha === payload.fecha
+      && record.diaRutina === payload.diaRutina
+      && record.ejercicio === payload.ejercicio
+      && Number(record.set) === Number(payload.set);
+  }) || null;
+}
+
+function upsertLocalRecord(record, existingRecord) {
+  if (!existingRecord) {
+    state.records.unshift(record);
+    return;
+  }
+
+  state.records = state.records.map((item) => {
+    const itemId = item.id || buildRemoteRecordId(item);
+    const existingId = existingRecord.id || buildRemoteRecordId(existingRecord);
+    return itemId === existingId ? record : item;
+  });
+
+  state.records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+function removePendingRecord(recordId) {
+  if (!recordId) {
+    return;
+  }
+
+  state.pendingRecords = state.pendingRecords.filter((item) => (item.id || buildRemoteRecordId(item)) !== recordId);
+  persistPendingRecords();
 }
 
 function parseSetsLabel(label) {
