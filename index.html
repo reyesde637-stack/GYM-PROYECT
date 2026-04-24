@@ -25,8 +25,15 @@
       </div>
 
       <div class="hero-panel">
-        <div class="date-label">Fecha de hoy</div>
-        <div id="current-date" class="date-value">--</div>
+        <div class="hero-panel-top">
+          <div>
+            <div class="date-label">Fecha de hoy</div>
+            <div id="current-date" class="date-value">--</div>
+          </div>
+          <button id="open-calendar-btn" class="icon-surface-button" type="button" aria-label="Abrir calendario">
+            <span aria-hidden="true">📅</span>
+          </button>
+        </div>
         <div class="hero-metrics">
           <div class="metric-card">
             <span class="metric-label">Sets hoy</span>
@@ -144,6 +151,48 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <div id="calendar-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal="true"></div>
+    <div class="modal-dialog calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title">
+      <div class="modal-header">
+        <div>
+          <p class="section-kicker">Calendario</p>
+          <h3 id="calendar-modal-title">Actividad mensual</h3>
+        </div>
+        <div class="calendar-header-actions">
+          <button id="calendar-prev-btn" class="icon-button" type="button" aria-label="Mes anterior">‹</button>
+          <div id="calendar-month-label" class="calendar-month-label">--</div>
+          <button id="calendar-next-btn" class="icon-button" type="button" aria-label="Mes siguiente">›</button>
+          <button id="calendar-close-btn" class="icon-button" type="button" aria-label="Cerrar calendario">×</button>
+        </div>
+      </div>
+      <div class="calendar-weekdays">
+        <span>Lun</span>
+        <span>Mar</span>
+        <span>Mié</span>
+        <span>Jue</span>
+        <span>Vie</span>
+        <span>Sáb</span>
+        <span>Dom</span>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </div>
+  </div>
+
+  <div id="day-report-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal="true"></div>
+    <div class="modal-dialog day-report-dialog" role="dialog" aria-modal="true" aria-labelledby="day-report-title">
+      <div class="modal-header">
+        <div>
+          <p class="section-kicker">Resumen del día</p>
+          <h3 id="day-report-title">Actividad diaria</h3>
+        </div>
+        <button id="day-report-close-btn" class="icon-button" type="button" aria-label="Cerrar resumen">×</button>
+      </div>
+      <div id="day-report-content" class="day-report-content"></div>
+    </div>
+  </div>
+
   <div id="delete-modal" class="modal hidden" aria-hidden="true">
     <div class="modal-backdrop" data-close-modal="true"></div>
     <div class="modal-dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
@@ -216,22 +265,29 @@
             <input id="reps-done-input" name="repsRealizadas" type="number" min="0" required>
           </label>
 
+          <label class="full-width">
+            <span>Estado automático</span>
+            <div id="goal-auto-summary" class="goal-auto-summary">
+              Escribe tus reps y el estado se calculará automáticamente.
+            </div>
+          </label>
+
           <label>
             <span>Reps objetivo</span>
             <input id="reps-target-input" name="repsObjetivo" type="text" readonly required>
           </label>
 
           <label>
-            <span>¿Cumplí objetivo?</span>
-            <select id="goal-hit-input" name="cumplioObjetivo" required>
+            <span>¿Cumplí objetivo? (auto)</span>
+            <select id="goal-hit-input" name="cumplioObjetivo" required disabled>
               <option value="Sí">Sí</option>
               <option value="No">No</option>
             </select>
           </label>
 
           <label>
-            <span>¿Superé objetivo?</span>
-            <select id="goal-over-input" name="superoObjetivo" required>
+            <span>¿Superé objetivo? (auto)</span>
+            <select id="goal-over-input" name="superoObjetivo" required disabled>
               <option value="No">No</option>
               <option value="Sí">Sí</option>
             </select>

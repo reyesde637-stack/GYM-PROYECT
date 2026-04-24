@@ -253,7 +253,9 @@ const state = {
   records: loadJson(STORAGE_KEYS.records, []),
   pendingRecords: loadJson(STORAGE_KEYS.pending, []),
   deletingRecordId: "",
-  deleteCandidateId: ""
+  deleteCandidateId: "",
+  calendarViewDate: getMonthStart(new Date()),
+  activeSummaryDate: ""
 };
 
 const elements = {};
@@ -265,6 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderDayCards();
   renderSelectedDay();
   renderHistory();
+  renderCalendar();
   populateProgressExerciseSelect();
   renderProgressChart();
   updateDashboardCounts();
@@ -277,6 +280,7 @@ function cacheElements() {
   elements.completedSetsCount = document.getElementById("completed-sets-count");
   elements.pendingCount = document.getElementById("pending-count");
   elements.retrySyncBtn = document.getElementById("retry-sync-btn");
+  elements.openCalendarBtn = document.getElementById("open-calendar-btn");
   elements.refreshHistoryBtn = document.getElementById("refresh-history-btn");
   elements.dayGrid = document.getElementById("day-grid");
   elements.selectedDayTitle = document.getElementById("selected-day-title");
@@ -292,6 +296,15 @@ function cacheElements() {
   elements.progressSummary = document.getElementById("progress-summary");
   elements.progressChart = document.getElementById("progress-chart");
   elements.progressChartEmpty = document.getElementById("progress-chart-empty");
+  elements.calendarModal = document.getElementById("calendar-modal");
+  elements.calendarCloseBtn = document.getElementById("calendar-close-btn");
+  elements.calendarPrevBtn = document.getElementById("calendar-prev-btn");
+  elements.calendarNextBtn = document.getElementById("calendar-next-btn");
+  elements.calendarMonthLabel = document.getElementById("calendar-month-label");
+  elements.calendarGrid = document.getElementById("calendar-grid");
+  elements.dayReportModal = document.getElementById("day-report-modal");
+  elements.dayReportCloseBtn = document.getElementById("day-report-close-btn");
+  elements.dayReportContent = document.getElementById("day-report-content");
   elements.modal = document.getElementById("set-modal");
   elements.setForm = document.getElementById("set-form");
   elements.closeModalBtn = document.getElementById("close-modal-btn");
@@ -312,19 +325,26 @@ function cacheElements() {
   elements.repsTargetInput = document.getElementById("reps-target-input");
   elements.goalHitInput = document.getElementById("goal-hit-input");
   elements.goalOverInput = document.getElementById("goal-over-input");
+  elements.goalAutoSummary = document.getElementById("goal-auto-summary");
   elements.notesInput = document.getElementById("notes-input");
 }
 
 function bindEvents() {
   elements.retrySyncBtn.addEventListener("click", () => retryPendingRecords(true));
+  elements.openCalendarBtn.addEventListener("click", openCalendarModal);
   elements.refreshHistoryBtn.addEventListener("click", refreshHistoryFromServer);
   elements.refreshProgressBtn.addEventListener("click", () => refreshProgressFromServer(true));
   elements.progressExerciseSelect.addEventListener("change", renderProgressChart);
   elements.progressMetricSelect.addEventListener("change", renderProgressChart);
   elements.progressUnitSelect.addEventListener("change", renderProgressChart);
+  elements.calendarCloseBtn.addEventListener("click", closeCalendarModal);
+  elements.calendarPrevBtn.addEventListener("click", () => changeCalendarMonth(-1));
+  elements.calendarNextBtn.addEventListener("click", () => changeCalendarMonth(1));
+  elements.dayReportCloseBtn.addEventListener("click", closeDayReportModal);
   elements.weightUnitInput.addEventListener("change", () => {
     localStorage.setItem(STORAGE_KEYS.preferredWeightUnit, elements.weightUnitInput.value);
   });
+  elements.repsDoneInput.addEventListener("input", updateGoalStatusFromInputs);
   elements.closeModalBtn.addEventListener("click", closeModal);
   elements.cancelModalBtn.addEventListener("click", closeModal);
   elements.deleteModalCancelBtn.addEventListener("click", closeDeleteModal);
@@ -363,6 +383,8 @@ function bindEvents() {
     if (target.matches("[data-close-modal='true']")) {
       closeModal();
       closeDeleteModal();
+      closeCalendarModal();
+      closeDayReportModal();
     }
   });
 
@@ -374,6 +396,16 @@ function bindEvents() {
 
     if (event.key === "Escape" && !elements.deleteModal.classList.contains("hidden")) {
       closeDeleteModal();
+      return;
+    }
+
+    if (event.key === "Escape" && !elements.dayReportModal.classList.contains("hidden")) {
+      closeDayReportModal();
+      return;
+    }
+
+    if (event.key === "Escape" && !elements.calendarModal.classList.contains("hidden")) {
+      closeCalendarModal();
     }
   });
 }
@@ -387,6 +419,37 @@ function renderCurrentDate() {
   });
 
   elements.currentDate.textContent = capitalizeText(formatter.format(new Date()));
+}
+
+function openCalendarModal() {
+  renderCalendar();
+  elements.calendarModal.classList.remove("hidden");
+  elements.calendarModal.setAttribute("aria-hidden", "false");
+}
+
+function closeCalendarModal() {
+  elements.calendarModal.classList.add("hidden");
+  elements.calendarModal.setAttribute("aria-hidden", "true");
+}
+
+function openDayReportModal(dateString) {
+  state.activeSummaryDate = dateString;
+  elements.dayReportContent.innerHTML = buildDayReportMarkup(dateString);
+  elements.dayReportModal.classList.remove("hidden");
+  elements.dayReportModal.setAttribute("aria-hidden", "false");
+}
+
+function closeDayReportModal() {
+  state.activeSummaryDate = "";
+  elements.dayReportModal.classList.add("hidden");
+  elements.dayReportModal.setAttribute("aria-hidden", "true");
+}
+
+function changeCalendarMonth(offset) {
+  const nextDate = new Date(state.calendarViewDate);
+  nextDate.setMonth(nextDate.getMonth() + offset);
+  state.calendarViewDate = getMonthStart(nextDate);
+  renderCalendar();
 }
 
 function renderDayCards() {
@@ -411,6 +474,44 @@ function renderDayCards() {
   });
 
   attachDayCardListeners();
+}
+
+function renderCalendar() {
+  const monthFormatter = new Intl.DateTimeFormat("es-MX", {
+    month: "long",
+    year: "numeric"
+  });
+  const monthStart = getMonthStart(state.calendarViewDate);
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+  const offset = (monthStart.getDay() + 6) % 7;
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - offset);
+  const recordCounts = getRecordCountsByDate();
+
+  elements.calendarMonthLabel.textContent = capitalizeText(monthFormatter.format(monthStart));
+  elements.calendarGrid.innerHTML = Array.from({ length: 42 }, (_, index) => {
+    const cellDate = new Date(gridStart);
+    cellDate.setDate(gridStart.getDate() + index);
+    const dateString = formatDateInputValue(cellDate);
+    const isCurrentMonth = cellDate.getMonth() === monthStart.getMonth();
+    const isToday = dateString === state.today;
+    const count = recordCounts.get(dateString) || 0;
+    const isChecked = count > 0;
+
+    return `
+      <button
+        class="calendar-day ${isCurrentMonth ? "" : "muted"} ${isToday ? "today" : ""} ${isChecked ? "checked" : ""}"
+        type="button"
+        data-calendar-date="${dateString}"
+      >
+        <span class="calendar-day-number">${cellDate.getDate()}</span>
+        ${isChecked ? `<span class="calendar-day-check">✓</span>` : ""}
+        ${isChecked ? `<span class="calendar-day-count">${count} set${count === 1 ? "" : "s"}</span>` : ""}
+      </button>
+    `;
+  }).join("");
+
+  attachCalendarDayListeners();
 }
 
 function renderSelectedDay() {
@@ -535,9 +636,10 @@ function openRegisterModal(dayId, exerciseIndex) {
   elements.weightUnitInput.value = localStorage.getItem(STORAGE_KEYS.preferredWeightUnit) || "kg";
   elements.repsDoneInput.value = "";
   elements.repsTargetInput.value = exercise.targetReps;
-  elements.goalHitInput.value = "Sí";
+  elements.goalHitInput.value = "No";
   elements.goalOverInput.value = "No";
   elements.notesInput.value = "";
+  updateGoalStatusFromInputs();
 
   elements.modal.classList.remove("hidden");
   elements.modal.setAttribute("aria-hidden", "false");
@@ -567,6 +669,37 @@ function closeDeleteModal() {
   state.deleteCandidateId = "";
   elements.deleteModal.classList.add("hidden");
   elements.deleteModal.setAttribute("aria-hidden", "true");
+}
+
+function updateGoalStatusFromInputs() {
+  const repsDone = Number(elements.repsDoneInput.value);
+  const targetRange = parseRepRange(elements.repsTargetInput.value);
+
+  if (!Number.isFinite(repsDone) || repsDone < 0 || !targetRange) {
+    elements.goalHitInput.value = "No";
+    elements.goalOverInput.value = "No";
+    elements.goalAutoSummary.textContent = "Escribe tus reps y el estado se calculará automáticamente.";
+    return;
+  }
+
+  const hitGoal = repsDone >= targetRange.min;
+  const overGoal = repsDone > targetRange.max;
+
+  elements.goalHitInput.value = hitGoal ? "Sí" : "No";
+  elements.goalOverInput.value = overGoal ? "Sí" : "No";
+
+  if (overGoal) {
+    elements.goalAutoSummary.textContent = `Superaste el rango objetivo (${targetRange.label}) con ${repsDone} reps.`;
+    return;
+  }
+
+  if (hitGoal) {
+    elements.goalAutoSummary.textContent = `Cumpliste el rango objetivo (${targetRange.label}) con ${repsDone} reps.`;
+    return;
+  }
+
+  const missing = Math.max(0, targetRange.min - repsDone);
+  elements.goalAutoSummary.textContent = `Te faltaron ${missing} rep${missing === 1 ? "" : "s"} para llegar al mínimo del rango (${targetRange.label}).`;
 }
 
 async function handleSetSubmit(event) {
@@ -617,6 +750,7 @@ async function handleSetSubmit(event) {
   closeModal();
   renderSelectedDay();
   renderHistory();
+  refreshCalendarAndSummaryViews();
   updateDashboardCounts();
 
   const saveResult = await sendRecordToAppsScript(localRecord);
@@ -629,6 +763,7 @@ async function handleSetSubmit(event) {
     persistRecords();
     renderHistory();
     renderProgressChart();
+    refreshCalendarAndSummaryViews();
     updateDashboardCounts();
     showToast(existingRecord ? "Set reemplazado correctamente." : "Set guardado correctamente en Google Sheets.", "success");
     return;
@@ -637,6 +772,7 @@ async function handleSetSubmit(event) {
   queuePendingRecord(localRecord);
   renderHistory();
   renderProgressChart();
+  refreshCalendarAndSummaryViews();
   updateDashboardCounts();
   showToast(existingRecord ? "No se pudo reemplazar en Sheets. El cambio quedó guardado localmente para reintento." : "No se pudo enviar. El registro quedo guardado localmente para reintento.", "error");
 }
@@ -760,6 +896,7 @@ function mergeRemoteRecords(remoteRecords) {
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
   });
   persistRecords();
+  refreshCalendarAndSummaryViews();
 }
 
 async function retryPendingRecords(showFeedback = true) {
@@ -796,6 +933,7 @@ async function retryPendingRecords(showFeedback = true) {
   renderHistory();
   populateProgressExerciseSelect();
   renderProgressChart();
+  refreshCalendarAndSummaryViews();
   updateDashboardCounts();
 
   if (showFeedback) {
@@ -964,6 +1102,7 @@ function removeRecordEverywhere(recordId) {
   renderHistory();
   populateProgressExerciseSelect();
   renderProgressChart();
+  refreshCalendarAndSummaryViews();
   updateDashboardCounts();
 }
 
@@ -1321,6 +1460,32 @@ function attachHistoryDeleteListeners() {
   });
 }
 
+function attachCalendarDayListeners() {
+  elements.calendarGrid.querySelectorAll("[data-calendar-date]").forEach((button) => {
+    button.onclick = () => {
+      const dateString = button.dataset.calendarDate;
+      const count = getRecordsForDate(dateString).length;
+      if (!count) {
+        showToast("Ese día no tiene sets registrados todavía.", "error");
+        return;
+      }
+
+      closeCalendarModal();
+      openDayReportModal(dateString);
+    };
+  });
+}
+
+function refreshCalendarAndSummaryViews() {
+  if (elements.calendarGrid) {
+    renderCalendar();
+  }
+
+  if (state.activeSummaryDate && elements.dayReportContent) {
+    elements.dayReportContent.innerHTML = buildDayReportMarkup(state.activeSummaryDate);
+  }
+}
+
 function showToast(message, type = "success") {
   clearTimeout(showToast.timeoutId);
   elements.toast.textContent = message;
@@ -1337,6 +1502,24 @@ function generateRecordId() {
   }
 
   return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function parseRepRange(targetText) {
+  const numbers = String(targetText || "").match(/\d+(?:\.\d+)?/g);
+  if (!numbers || numbers.length === 0) {
+    return null;
+  }
+
+  const parsed = numbers.map((value) => Number(value)).filter((value) => Number.isFinite(value));
+  if (!parsed.length) {
+    return null;
+  }
+
+  return {
+    min: parsed[0],
+    max: parsed.length > 1 ? parsed[1] : parsed[0],
+    label: String(targetText || "").trim()
+  };
 }
 
 function createExercise(name, setsLabel) {
@@ -1396,6 +1579,248 @@ function parseSetsLabel(label) {
 
 function buildPlaceholderImage(name) {
   return `https://placehold.co/600x400/101820/EAF2F9?text=${encodeURIComponent(name)}`;
+}
+
+function getRecordsForDate(dateString) {
+  return state.records
+    .filter((record) => record.fecha === dateString)
+    .sort((a, b) => new Date(a.timestamp || `${a.fecha}T00:00:00`).getTime() - new Date(b.timestamp || `${b.fecha}T00:00:00`).getTime());
+}
+
+function getRecordCountsByDate() {
+  const map = new Map();
+
+  state.records.forEach((record) => {
+    if (!record.fecha) {
+      return;
+    }
+
+    map.set(record.fecha, (map.get(record.fecha) || 0) + 1);
+  });
+
+  return map;
+}
+
+function buildDayReportMarkup(dateString) {
+  const records = getRecordsForDate(dateString);
+  if (!records.length) {
+    return `<div class="empty-state">No hay registros disponibles para esa fecha.</div>`;
+  }
+
+  const analysis = analyzeDayRecords(records);
+
+  return `
+    <div class="day-report-hero">
+      <div>
+        <h4>${formatLongDate(dateString)}</h4>
+        <p>${analysis.totalSets} sets · ${analysis.uniqueExercises.length} ejercicio(s) · ${analysis.firstTime}${analysis.lastTime && analysis.lastTime !== analysis.firstTime ? ` a ${analysis.lastTime}` : ""}</p>
+      </div>
+      <div class="day-report-badge">
+        <strong>${analysis.estimatedCalories}</strong>
+        <span>kcal estimadas</span>
+      </div>
+    </div>
+
+    <div class="day-report-metrics">
+      <div class="report-metric-card">
+        <span>Cumplimiento</span>
+        <strong>${analysis.goalRate}%</strong>
+      </div>
+      <div class="report-metric-card">
+        <span>Volumen total</span>
+        <strong>${formatAxisValue(analysis.totalVolume)}</strong>
+      </div>
+      <div class="report-metric-card">
+        <span>Duración estimada</span>
+        <strong>${analysis.estimatedMinutes} min</strong>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <h5>Puntos fuertes</h5>
+      <ul class="report-list">
+        ${analysis.strengths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+    </div>
+
+    <div class="report-section">
+      <h5>Puntos débiles</h5>
+      <ul class="report-list">
+        ${analysis.weaknesses.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+    </div>
+
+    <div class="report-section">
+      <h5>Orden de ejercicios</h5>
+      <ol class="report-sequence">
+        ${analysis.exerciseSequence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ol>
+    </div>
+
+    <div class="report-section">
+      <h5>Recomendaciones</h5>
+      <ul class="report-list">
+        ${analysis.recommendations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+      <p class="report-footnote">Calorías estimadas con una referencia de 75 kg y la densidad de la sesión. Úsalo como orientación, no como medición clínica.</p>
+    </div>
+
+    <div class="report-section">
+      <h5>Línea del tiempo</h5>
+      <div class="report-timeline">
+        ${analysis.timeline.map((item) => `
+          <div class="timeline-item">
+            <strong>${escapeHtml(item.time)}</strong>
+            <span>${escapeHtml(item.text)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function analyzeDayRecords(records) {
+  const sortedRecords = records.slice().sort((a, b) => new Date(a.timestamp || `${a.fecha}T00:00:00`).getTime() - new Date(b.timestamp || `${b.fecha}T00:00:00`).getTime());
+  const totalSets = sortedRecords.length;
+  const totalVolume = sortedRecords.reduce((sum, record) => sum + (Number(record.peso) || 0) * (Number(record.repsRealizadas) || 0), 0);
+  const goalHits = sortedRecords.filter((record) => record.cumplioObjetivo === "Sí").length;
+  const overs = sortedRecords.filter((record) => record.superoObjetivo === "Sí").length;
+  const misses = sortedRecords.filter((record) => record.cumplioObjetivo !== "Sí").length;
+  const missingWeights = sortedRecords.filter((record) => record.peso === "" || Number(record.peso) === 0).length;
+  const uniqueExercises = Array.from(new Set(sortedRecords.map((record) => record.ejercicio)));
+  const orderedExercises = [];
+  sortedRecords.forEach((record) => {
+    if (!orderedExercises.includes(record.ejercicio)) {
+      orderedExercises.push(record.ejercicio);
+    }
+  });
+
+  const exerciseSequence = orderedExercises.map((exerciseName, index) => {
+    const exerciseRecords = sortedRecords.filter((record) => record.ejercicio === exerciseName);
+    const setCount = exerciseRecords.length;
+    const bestSet = exerciseRecords.reduce((best, record) => {
+      const currentScore = (Number(record.peso) || 0) * (Number(record.repsRealizadas) || 0);
+      const bestScore = best ? (Number(best.peso) || 0) * (Number(best.repsRealizadas) || 0) : -1;
+      return currentScore > bestScore ? record : best;
+    }, null);
+    return `${index + 1}. ${exerciseName} · ${setCount} set(s) · mejor set ${formatSetLine(bestSet)}`;
+  });
+
+  const firstTimestamp = sortedRecords[0].timestamp || `${sortedRecords[0].fecha}T00:00:00`;
+  const lastTimestamp = sortedRecords[sortedRecords.length - 1].timestamp || `${sortedRecords[sortedRecords.length - 1].fecha}T00:00:00`;
+  const estimatedMinutes = estimateSessionMinutes(sortedRecords);
+  const estimatedCalories = estimateCaloriesBurned(sortedRecords, estimatedMinutes);
+  const topExercise = getTopVolumeExercise(sortedRecords);
+  const goalRate = Math.round((goalHits / Math.max(1, totalSets)) * 100);
+
+  const strengths = [];
+  const weaknesses = [];
+  const recommendations = [];
+
+  if (goalHits > 0) {
+    strengths.push(`Cumpliste el objetivo en ${goalHits} de ${totalSets} sets.`);
+  }
+  if (overs > 0) {
+    strengths.push(`Superaste el rango objetivo en ${overs} set(s), señal de progreso real.`);
+  }
+  if (topExercise) {
+    strengths.push(`El ejercicio más fuerte del día fue ${topExercise.name} con ${formatAxisValue(topExercise.volume)} de volumen total.`);
+  }
+  if (!strengths.length) {
+    strengths.push("Quedó registro completo de la sesión, lo cual ya ayuda bastante a progresar con criterio.");
+  }
+
+  if (misses > 0) {
+    weaknesses.push(`${misses} set(s) quedaron por debajo del mínimo del rango objetivo.`);
+  }
+  if (missingWeights > 0) {
+    weaknesses.push(`Faltó registrar peso en ${missingWeights} set(s), lo que baja la calidad del análisis.`);
+  }
+  if (estimatedMinutes < 20) {
+    weaknesses.push("La sesión quedó muy corta; quizá registraste solo una parte del entrenamiento.");
+  }
+  if (!weaknesses.length) {
+    weaknesses.push("No se ven puntos débiles grandes en el registro; la sesión estuvo bastante pareja.");
+  }
+
+  if (overs >= 2) {
+    recommendations.push("En los ejercicios donde superaste el rango, considera subir 2.5% a 5% la próxima vez.");
+  }
+  if (misses > 0) {
+    recommendations.push("En los sets que no llegaron al mínimo, mantén el peso actual y prioriza técnica y descanso.");
+  }
+  if (missingWeights > 0) {
+    recommendations.push("Registra el peso en todos los sets para que el progreso y las calorías estimadas sean más útiles.");
+  }
+  if (!recommendations.length) {
+    recommendations.push("Mantén la progresión actual e intenta cerrar un set extra fuerte al inicio de la próxima sesión.");
+  }
+
+  const timeline = sortedRecords.map((record) => ({
+    time: formatTimeOnly(record.timestamp || `${record.fecha}T00:00:00`),
+    text: `${record.ejercicio} · set ${record.set} · ${record.repsRealizadas} reps · ${record.peso === "" ? "sin peso" : `${record.peso} ${record.unidadPeso || "kg"}`} · objetivo ${record.repsObjetivo}`
+  }));
+
+  return {
+    totalSets,
+    totalVolume,
+    goalRate,
+    estimatedMinutes,
+    estimatedCalories,
+    firstTime: formatTimeOnly(firstTimestamp),
+    lastTime: formatTimeOnly(lastTimestamp),
+    uniqueExercises,
+    strengths,
+    weaknesses,
+    recommendations,
+    exerciseSequence,
+    timeline
+  };
+}
+
+function getTopVolumeExercise(records) {
+  const byExercise = new Map();
+
+  records.forEach((record) => {
+    const key = record.ejercicio;
+    const volume = (Number(record.peso) || 0) * (Number(record.repsRealizadas) || 0);
+    byExercise.set(key, (byExercise.get(key) || 0) + volume);
+  });
+
+  let best = null;
+  byExercise.forEach((volume, name) => {
+    if (!best || volume > best.volume) {
+      best = { name, volume };
+    }
+  });
+
+  return best;
+}
+
+function estimateSessionMinutes(records) {
+  const first = new Date(records[0].timestamp || `${records[0].fecha}T00:00:00`);
+  const last = new Date(records[records.length - 1].timestamp || `${records[records.length - 1].fecha}T00:00:00`);
+  const spanMinutes = Math.max(0, (last.getTime() - first.getTime()) / 60000);
+  const fallbackMinutes = records.length * 2.75;
+  return Math.max(Math.round(spanMinutes + 8), Math.round(fallbackMinutes), 12);
+}
+
+function estimateCaloriesBurned(records, minutes) {
+  const totalVolume = records.reduce((sum, record) => sum + (Number(record.peso) || 0) * (Number(record.repsRealizadas) || 0), 0);
+  const sessionDensity = totalVolume / Math.max(1, minutes);
+  const met = Math.min(7.2, 4.8 + sessionDensity / 220);
+  const referenceBodyWeightKg = 75;
+  const calories = met * 3.5 * referenceBodyWeightKg / 200 * minutes;
+  return Math.round(calories);
+}
+
+function formatSetLine(record) {
+  if (!record) {
+    return "sin datos";
+  }
+
+  const weightText = record.peso === "" ? "sin peso" : `${record.peso} ${record.unidadPeso || "kg"}`;
+  return `${record.repsRealizadas} reps con ${weightText}`;
 }
 
 function getAllExerciseNames() {
@@ -1564,4 +1989,31 @@ function formatDateShort(dateString) {
     month: "short",
     day: "numeric"
   }).format(date);
+}
+
+function formatLongDate(dateString) {
+  const date = new Date(`${dateString}T00:00:00`);
+  return capitalizeText(new Intl.DateTimeFormat("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date));
+}
+
+function formatTimeOnly(dateString) {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function getMonthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function formatDateInputValue(date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
 }
