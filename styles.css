@@ -336,7 +336,8 @@ textarea {
   width: 100%;
   height: 100%;
   min-height: 185px;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 12px;
 }
 
 .exercise-content {
@@ -393,11 +394,45 @@ textarea {
   margin-top: auto;
 }
 
+.exercise-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .status-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.exercise-guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.exercise-guide-link span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.exercise-guide-link:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .status-chip {
@@ -804,6 +839,10 @@ textarea {
 
   .exercise-content {
     padding: 0 16px 16px;
+  }
+
+  .exercise-meta {
+    width: 100%;
   }
 
   .form-grid {
