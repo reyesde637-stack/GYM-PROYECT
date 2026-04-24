@@ -8,6 +8,40 @@ const STORAGE_KEYS = {
   preferredWeightUnit: "gym-tracker-preferred-weight-unit"
 };
 
+const PROGRESS_CATEGORY_LABELS = {
+  upper: "Upper",
+  lower: "Lower",
+  others: "Others"
+};
+
+const EXERCISE_MEDIA = {
+  "Press inclinado barra": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80",
+  "Jalon al pecho amplio": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=900&q=80",
+  "Press banca plano": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80",
+  "Remo con barra": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=900&q=80",
+  "Elevaciones laterales": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=900&q=80",
+  "Curl biceps": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=900&q=80",
+  "Triceps cuerda": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
+  "Sentadilla": "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?auto=format&fit=crop&w=900&q=80",
+  "Peso muerto rumano": "https://images.unsplash.com/photo-1534258936925-c58bed479fcb?auto=format&fit=crop&w=900&q=80",
+  "Prensa": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=900&q=80",
+  "Curl femoral": "https://images.unsplash.com/photo-1518611012118-fbcedce76613?auto=format&fit=crop&w=900&q=80",
+  "Elevaciones de piernas": "https://images.unsplash.com/photo-1571019613576-2b22c76fd955?auto=format&fit=crop&w=900&q=80",
+  "Plancha": "https://images.unsplash.com/photo-1517836357463-4a73f0c72014?auto=format&fit=crop&w=900&q=80",
+  "Press hombro": "https://images.unsplash.com/photo-1518459031867-a89b944bffe4?auto=format&fit=crop&w=900&q=80",
+  "Jalon al pecho": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=900&q=80",
+  "Remo maquina": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=900&q=80",
+  "Face pull": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
+  "Curl martillo": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=900&q=80",
+  "Triceps": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
+  "Hip thrust": "https://images.unsplash.com/photo-1517836357463-4a73f0c72014?auto=format&fit=crop&w=900&q=80",
+  "Zancadas": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80",
+  "Gemelos": "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?auto=format&fit=crop&w=900&q=80",
+  "Ab wheel / crunch": "https://images.unsplash.com/photo-1571019613576-2b22c76fd955?auto=format&fit=crop&w=900&q=80",
+  "Cardio 20-30 min": "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=900&q=80",
+  "Abdomen + vacuum": "https://images.unsplash.com/photo-1571019613576-2b22c76fd955?auto=format&fit=crop&w=900&q=80"
+};
+
 const routineDays = [
   {
     id: 1,
@@ -16,6 +50,7 @@ const routineDays = [
     subtitle: "Pecho superior + espalda",
     description: "Empuje y traccion con enfoque en torso y volumen visual.",
     type: "training",
+    progressCategory: "upper",
     exercises: [
       createExercise("Press inclinado barra", "4x6-8"),
       createExercise("Jalon al pecho amplio", "4x8-10"),
@@ -33,6 +68,7 @@ const routineDays = [
     subtitle: "Pierna + abdomen",
     description: "Base de fuerza, femoral y core.",
     type: "training",
+    progressCategory: "lower",
     exercises: [
       createExercise("Sentadilla", "4x6-8"),
       createExercise("Peso muerto rumano", "3x8-10"),
@@ -58,6 +94,7 @@ const routineDays = [
     subtitle: "Hombro + espalda estetica",
     description: "Deltoides, espalda alta y detalle visual.",
     type: "training",
+    progressCategory: "upper",
     exercises: [
       createExercise("Press hombro", "4x6-8"),
       createExercise("Jalon al pecho", "3x10"),
@@ -75,6 +112,7 @@ const routineDays = [
     subtitle: "Gluteo + abdomen",
     description: "Cadena posterior, gluteo y estabilidad central.",
     type: "training",
+    progressCategory: "lower",
     exercises: [
       createExercise("Hip thrust", "4x8-10"),
       createExercise("Zancadas", "3x10 c/pierna"),
@@ -90,6 +128,7 @@ const routineDays = [
     subtitle: "Cardio / abdomen",
     description: "Trabajo ligero para condicion y abdomen.",
     type: "training",
+    progressCategory: "others",
     exercises: [
       createExercise("Cardio 20-30 min", "1x20-30 min"),
       createExercise("Abdomen + vacuum", "3x12-15")
@@ -305,6 +344,7 @@ function renderSelectedDay() {
           class="exercise-image"
           src="${exercise.image}"
           alt="Referencia visual para ${exercise.name}"
+          data-exercise-name="${escapeAttribute(exercise.name)}"
           loading="lazy"
         >
       </div>
@@ -340,6 +380,7 @@ function renderSelectedDay() {
   });
 
   attachExerciseButtonListeners();
+  attachExerciseImageFallbacks();
 }
 
 function renderSetDots(total, completed) {
@@ -807,37 +848,61 @@ async function refreshProgressFromServer(showFeedback = true) {
 
 function populateProgressExerciseSelect() {
   const currentValue = elements.progressExerciseSelect.value;
-  const exercises = getAllExerciseNames();
-
-  elements.progressExerciseSelect.innerHTML = exercises.map((name) => {
-    return `<option value="${escapeAttribute(name)}">${escapeHtml(name)}</option>`;
+  const catalog = getExerciseCatalog();
+  const overallOptions = Object.keys(PROGRESS_CATEGORY_LABELS).map((category) => {
+    return `<option value="overall:${category}">Overall ${PROGRESS_CATEGORY_LABELS[category]}</option>`;
   }).join("");
 
-  if (!exercises.length) {
+  const groupedExercises = Object.keys(PROGRESS_CATEGORY_LABELS).map((category) => {
+    const options = catalog
+      .filter((item) => item.category === category)
+      .map((item) => `<option value="exercise:${escapeAttribute(item.name)}">${escapeHtml(item.name)}</option>`)
+      .join("");
+
+    if (!options) {
+      return "";
+    }
+
+    return `<optgroup label="${escapeAttribute(PROGRESS_CATEGORY_LABELS[category])} - Ejercicios">${options}</optgroup>`;
+  }).join("");
+
+  elements.progressExerciseSelect.innerHTML = `
+    <optgroup label="Resumen por categoría">
+      ${overallOptions}
+    </optgroup>
+    ${groupedExercises}
+  `;
+
+  if (!catalog.length) {
     elements.progressExerciseSelect.innerHTML = '<option value="">Sin ejercicios</option>';
     return;
   }
 
-  if (exercises.includes(currentValue)) {
+  const validValues = [
+    ...Object.keys(PROGRESS_CATEGORY_LABELS).map((category) => `overall:${category}`),
+    ...catalog.map((item) => `exercise:${item.name}`)
+  ];
+
+  if (validValues.includes(currentValue)) {
     elements.progressExerciseSelect.value = currentValue;
   } else {
-    elements.progressExerciseSelect.value = exercises[0];
+    elements.progressExerciseSelect.value = "overall:upper";
   }
 }
 
 function renderProgressChart() {
-  const exercise = elements.progressExerciseSelect.value;
+  const selection = parseProgressSelection(elements.progressExerciseSelect.value);
   const metric = elements.progressMetricSelect.value;
   const unit = elements.progressUnitSelect.value;
-  const seriesResult = buildProgressSeries(exercise, metric, unit);
+  const seriesResult = buildProgressSeries(selection, metric, unit);
   const points = seriesResult.points;
 
-  if (!exercise || points.length === 0) {
+  if (!selection || points.length === 0) {
     elements.progressChart.classList.add("hidden");
     elements.progressChartEmpty.classList.remove("hidden");
     elements.progressSummary.textContent = seriesResult.message
-      || (exercise
-        ? "Aún no hay datos suficientes para ese ejercicio."
+      || (selection
+        ? "Aún no hay datos suficientes para esa vista."
         : "Selecciona un ejercicio para ver su evolución.");
     return;
   }
@@ -845,13 +910,29 @@ function renderProgressChart() {
   elements.progressChart.classList.remove("hidden");
   elements.progressChartEmpty.classList.add("hidden");
   elements.progressChart.innerHTML = buildChartSvg(points);
-  elements.progressSummary.textContent = buildProgressSummary(exercise, metric, seriesResult.unitHint || unit, points);
+  elements.progressSummary.textContent = buildProgressSummary(selection, metric, seriesResult.unitHint || unit, points);
 }
 
-function buildProgressSeries(exercise, metric, unit) {
+function buildProgressSeries(selection, metric, unit) {
+  if (!selection) {
+    return {
+      points: [],
+      message: "",
+      unitHint: unit
+    };
+  }
+
   const records = state.records
     .filter((record) => {
-      if (record.ejercicio !== exercise || !record.fecha) {
+      if (!record.fecha) {
+        return false;
+      }
+
+      if (selection.type === "overall") {
+        if (getProgressCategoryFromRecord(record) !== selection.category) {
+          return false;
+        }
+      } else if (record.ejercicio !== selection.name) {
         return false;
       }
 
@@ -863,13 +944,19 @@ function buildProgressSeries(exercise, metric, unit) {
     })
     .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
-  const allExerciseUnits = Array.from(new Set(
+  const allSelectionUnits = Array.from(new Set(
     state.records
-      .filter((record) => record.ejercicio === exercise)
+      .filter((record) => {
+        if (selection.type === "overall") {
+          return getProgressCategoryFromRecord(record) === selection.category;
+        }
+
+        return record.ejercicio === selection.name;
+      })
       .map((record) => record.unidadPeso || "kg")
   ));
 
-  if ((metric === "weightMax" || metric === "volume") && unit === "all" && allExerciseUnits.length > 1) {
+  if ((metric === "weightMax" || metric === "volume") && unit === "all" && allSelectionUnits.length > 1) {
     return {
       points: [],
       message: "Selecciona kg o lb para esa métrica y evitar mezclar unidades.",
@@ -916,11 +1003,11 @@ function buildProgressSeries(exercise, metric, unit) {
   return {
     points,
     message: "",
-    unitHint: unit === "all" && allExerciseUnits.length === 1 ? allExerciseUnits[0] : unit
+    unitHint: unit === "all" && allSelectionUnits.length === 1 ? allSelectionUnits[0] : unit
   };
 }
 
-function buildProgressSummary(exercise, metric, unit, points) {
+function buildProgressSummary(selection, metric, unit, points) {
   const metricLabel = getMetricLabel(metric);
   const first = points[0];
   const last = points[points.length - 1];
@@ -928,7 +1015,7 @@ function buildProgressSummary(exercise, metric, unit, points) {
   const deltaLabel = delta === 0 ? "sin cambio neto" : `${delta > 0 ? "+" : ""}${delta}`;
   const unitLabel = metric === "repsMax" ? "" : unit === "all" ? " (todas las unidades)" : ` (${unit})`;
 
-  return `${exercise}: ${metricLabel}${unitLabel} actual ${formatMetricValue(metric, last.value, unit)}. Cambio acumulado ${deltaLabel} desde ${first.date}.`;
+  return `${selection.label}: ${metricLabel}${unitLabel} actual ${formatMetricValue(metric, last.value, unit)}. Cambio acumulado ${deltaLabel} desde ${first.date}.`;
 }
 
 function buildChartSvg(points) {
@@ -1055,6 +1142,16 @@ function attachExerciseButtonListeners() {
   });
 }
 
+function attachExerciseImageFallbacks() {
+  elements.exerciseList.querySelectorAll(".exercise-image").forEach((image) => {
+    image.onerror = () => {
+      const exerciseName = image.dataset.exerciseName || "Ejercicio";
+      image.src = buildPlaceholderImage(exerciseName);
+      image.onerror = null;
+    };
+  });
+}
+
 function attachHistoryDeleteListeners() {
   elements.historyList.querySelectorAll("[data-delete-record]").forEach((button) => {
     button.onclick = (event) => {
@@ -1089,7 +1186,7 @@ function createExercise(name, setsLabel) {
     setsLabel,
     targetSets: parsed.targetSets,
     targetReps: parsed.targetReps,
-    image: buildPlaceholderImage(name)
+    image: EXERCISE_MEDIA[name] || buildPlaceholderImage(name)
   };
 }
 
@@ -1109,6 +1206,80 @@ function getAllExerciseNames() {
   const routineExercises = routineDays.flatMap((day) => day.exercises.map((exercise) => exercise.name));
   const recordExercises = state.records.map((record) => record.ejercicio).filter(Boolean);
   return Array.from(new Set([...routineExercises, ...recordExercises])).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function getExerciseCatalog() {
+  const catalogMap = new Map();
+
+  routineDays.forEach((day) => {
+    if (!day.progressCategory) {
+      return;
+    }
+
+    day.exercises.forEach((exercise) => {
+      if (!catalogMap.has(exercise.name)) {
+        catalogMap.set(exercise.name, {
+          name: exercise.name,
+          category: day.progressCategory
+        });
+      }
+    });
+  });
+
+  return Array.from(catalogMap.values()).sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+function parseProgressSelection(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value.startsWith("overall:")) {
+    const category = value.slice("overall:".length);
+    return {
+      type: "overall",
+      category,
+      label: `Overall ${PROGRESS_CATEGORY_LABELS[category] || category}`
+    };
+  }
+
+  if (value.startsWith("exercise:")) {
+    const name = value.slice("exercise:".length);
+    return {
+      type: "exercise",
+      name,
+      category: getExerciseCategoryByName(name),
+      label: name
+    };
+  }
+
+  return null;
+}
+
+function getExerciseCategoryByName(exerciseName) {
+  const day = routineDays.find((item) => {
+    return item.exercises.some((exercise) => exercise.name === exerciseName);
+  });
+
+  return day && day.progressCategory ? day.progressCategory : "others";
+}
+
+function getProgressCategoryFromRecord(record) {
+  const byName = getExerciseCategoryByName(record.ejercicio);
+  if (byName) {
+    return byName;
+  }
+
+  const text = String(record.diaRutina || "").toLowerCase();
+  if (text.includes("upper")) {
+    return "upper";
+  }
+
+  if (text.includes("lower")) {
+    return "lower";
+  }
+
+  return "others";
 }
 
 function normalizeOptionalNumber(value) {
