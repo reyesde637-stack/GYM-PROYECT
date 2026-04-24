@@ -928,6 +928,9 @@ async function deleteRecordFromAppsScript(record) {
         peso: record.peso,
         unidadPeso: record.unidadPeso || "kg",
         repsRealizadas: record.repsRealizadas,
+        repsObjetivo: record.repsObjetivo || "",
+        cumplioObjetivo: record.cumplioObjetivo || "No",
+        superoObjetivo: record.superoObjetivo || "No",
         timestamp: record.timestamp || "",
         notas: record.notas || ""
       })
