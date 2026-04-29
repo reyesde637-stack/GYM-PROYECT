@@ -1054,6 +1054,78 @@ textarea {
   line-height: 1.5;
 }
 
+.comparison-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comparison-title {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.previous-performance-card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 179, 71, 0.28);
+  background: linear-gradient(180deg, rgba(255, 165, 0, 0.14), rgba(255, 149, 0, 0.06));
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.previous-performance-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.previous-performance-header strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+}
+
+.previous-performance-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #f7dfba;
+  display: grid;
+  gap: 6px;
+  line-height: 1.45;
+}
+
+.comparison-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.comparison-status.better {
+  color: #03230f;
+  background: rgba(51, 209, 122, 0.92);
+}
+
+.comparison-status.equal {
+  color: #3d2b00;
+  background: rgba(255, 214, 102, 0.94);
+}
+
+.comparison-status.worse {
+  color: #fff2f2;
+  background: rgba(255, 107, 107, 0.9);
+}
+
+.comparison-status.neutral {
+  color: #382400;
+  background: rgba(255, 192, 91, 0.9);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1169,6 +1241,11 @@ textarea {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .previous-performance-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .progress-toolbar {

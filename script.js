@@ -332,6 +332,10 @@ function cacheElements() {
   elements.goalHitInput = document.getElementById("goal-hit-input");
   elements.goalOverInput = document.getElementById("goal-over-input");
   elements.goalAutoSummary = document.getElementById("goal-auto-summary");
+  elements.previousPerformanceCard = document.getElementById("previous-performance-card");
+  elements.previousPerformanceHeading = document.getElementById("previous-performance-heading");
+  elements.previousPerformanceStatus = document.getElementById("previous-performance-status");
+  elements.previousPerformanceList = document.getElementById("previous-performance-list");
   elements.notesInput = document.getElementById("notes-input");
 }
 
@@ -350,8 +354,13 @@ function bindEvents() {
   elements.dayReportCloseBtn.addEventListener("click", closeDayReportModal);
   elements.weightUnitInput.addEventListener("change", () => {
     localStorage.setItem(STORAGE_KEYS.preferredWeightUnit, elements.weightUnitInput.value);
+    updatePreviousPerformanceCard();
   });
+  elements.dateInput.addEventListener("change", updatePreviousPerformanceCard);
+  elements.setNumberInput.addEventListener("input", updatePreviousPerformanceCard);
+  elements.weightInput.addEventListener("input", updatePreviousPerformanceCard);
   elements.repsDoneInput.addEventListener("input", updateGoalStatusFromInputs);
+  elements.repsDoneInput.addEventListener("input", updatePreviousPerformanceCard);
   elements.closeModalBtn.addEventListener("click", closeModal);
   elements.cancelModalBtn.addEventListener("click", closeModal);
   elements.deleteModalCancelBtn.addEventListener("click", closeDeleteModal);
@@ -727,6 +736,7 @@ function openRegisterModal(dayId, exerciseIndex) {
   elements.goalOverInput.value = "No";
   elements.notesInput.value = "";
   updateGoalStatusFromInputs();
+  updatePreviousPerformanceCard();
 
   elements.modal.classList.remove("hidden");
   elements.modal.setAttribute("aria-hidden", "false");
@@ -735,6 +745,7 @@ function openRegisterModal(dayId, exerciseIndex) {
 function closeModal() {
   state.activeExercise = null;
   elements.setForm.reset();
+  resetPreviousPerformanceCard();
   elements.modal.classList.add("hidden");
   elements.modal.setAttribute("aria-hidden", "true");
 }
@@ -787,6 +798,194 @@ function updateGoalStatusFromInputs() {
 
   const missing = Math.max(0, targetRange.min - repsDone);
   elements.goalAutoSummary.textContent = `Te faltaron ${missing} rep${missing === 1 ? "" : "s"} para llegar al mínimo del rango (${targetRange.label}).`;
+}
+
+function updatePreviousPerformanceCard() {
+  const reference = getPreviousExerciseReference();
+
+  if (!reference) {
+    resetPreviousPerformanceCard();
+    return;
+  }
+
+  const currentSnapshot = {
+    peso: normalizeOptionalNumber(elements.weightInput.value),
+    unidadPeso: elements.weightUnitInput.value || "kg",
+    repsRealizadas: Number(elements.repsDoneInput.value),
+    set: Number(elements.setNumberInput.value)
+  };
+
+  const comparison = comparePerformanceAgainstReference(currentSnapshot, reference);
+  const comparisonLabel = reference.sameSet
+    ? "Mismo número de set en la última sesión"
+    : "Último set disponible de la sesión anterior";
+
+  elements.previousPerformanceHeading.textContent = "Última sesión comparable";
+  elements.previousPerformanceStatus.className = `comparison-status ${comparison.tone}`;
+  elements.previousPerformanceStatus.textContent = `${comparison.symbol} ${comparison.message}`;
+  elements.previousPerformanceList.innerHTML = `
+    <li><strong>Fecha:</strong> ${escapeHtml(formatLongDate(reference.fecha))}</li>
+    <li><strong>Set comparable:</strong> ${escapeHtml(String(reference.set))}</li>
+    <li><strong>Peso:</strong> ${escapeHtml(formatWeightWithUnit(reference.peso, reference.unidadPeso || "kg"))}</li>
+    <li><strong>Reps:</strong> ${escapeHtml(String(reference.repsRealizadas))}</li>
+    <li><strong>Objetivo de ese día:</strong> ${escapeHtml(reference.repsObjetivo || "Sin objetivo")}</li>
+    <li><strong>Referencia:</strong> ${escapeHtml(comparisonLabel)}</li>
+    <li><strong>Lectura actual:</strong> ${escapeHtml(comparison.detail)}</li>
+  `;
+}
+
+function resetPreviousPerformanceCard() {
+  elements.previousPerformanceHeading.textContent = "Sin referencia previa";
+  elements.previousPerformanceStatus.className = "comparison-status neutral";
+  elements.previousPerformanceStatus.textContent = "- Sin comparación";
+  elements.previousPerformanceList.innerHTML = `
+    <li>Cuando ya exista una sesión anterior del mismo ejercicio, verás aquí el peso y reps para comparar.</li>
+  `;
+}
+
+function getPreviousExerciseReference() {
+  const exerciseName = elements.exerciseInput.value.trim();
+  const currentDate = elements.dateInput.value;
+  const currentSet = Number(elements.setNumberInput.value);
+
+  if (!exerciseName || !currentDate) {
+    return null;
+  }
+
+  const previousSessionDate = state.records
+    .filter((record) => record.ejercicio === exerciseName && record.fecha && record.fecha < currentDate)
+    .map((record) => record.fecha)
+    .sort()
+    .pop();
+
+  if (!previousSessionDate) {
+    return null;
+  }
+
+  const sessionRecords = state.records
+    .filter((record) => record.ejercicio === exerciseName && record.fecha === previousSessionDate)
+    .sort((a, b) => new Date(b.timestamp || `${b.fecha}T00:00:00`).getTime() - new Date(a.timestamp || `${a.fecha}T00:00:00`).getTime());
+
+  const sameSetRecord = sessionRecords.find((record) => Number(record.set) === currentSet);
+  const referenceRecord = sameSetRecord || sessionRecords[0];
+
+  if (!referenceRecord) {
+    return null;
+  }
+
+  return {
+    ...referenceRecord,
+    sameSet: Boolean(sameSetRecord)
+  };
+}
+
+function comparePerformanceAgainstReference(current, reference) {
+  const currentHasReps = Number.isFinite(current.repsRealizadas) && current.repsRealizadas >= 0;
+  const currentHasWeight = current.peso !== "" && Number.isFinite(current.peso);
+  const referenceHasWeight = reference.peso !== "" && Number.isFinite(Number(reference.peso));
+  const sameUnit = (current.unidadPeso || "kg") === (reference.unidadPeso || "kg");
+
+  if (!currentHasReps && !currentHasWeight) {
+    return {
+      tone: "neutral",
+      symbol: "-",
+      message: "Escribe tus datos",
+      detail: "Aún falta capturar peso y/o reps para compararte."
+    };
+  }
+
+  const referenceWeight = referenceHasWeight ? Number(reference.peso) : "";
+  const currentWeight = currentHasWeight ? Number(current.peso) : "";
+  const referenceReps = Number(reference.repsRealizadas) || 0;
+  const currentReps = currentHasReps ? current.repsRealizadas : 0;
+
+  if (sameUnit && currentHasWeight && referenceHasWeight) {
+    const directMatch = currentWeight === referenceWeight && currentReps === referenceReps;
+    if (directMatch) {
+      return {
+        tone: "equal",
+        symbol: "-",
+        message: "Igual que la vez pasada",
+        detail: `Repites ${formatWeightWithUnit(currentWeight, current.unidadPeso)} por ${currentReps} reps.`
+      };
+    }
+
+    const definitelyBetter = (currentWeight > referenceWeight && currentReps >= referenceReps)
+      || (currentReps > referenceReps && currentWeight >= referenceWeight);
+    if (definitelyBetter) {
+      return {
+        tone: "better",
+        symbol: "↑",
+        message: "Mejor que la vez pasada",
+        detail: `Subiste de ${formatWeightWithUnit(referenceWeight, reference.unidadPeso)} x ${referenceReps} a ${formatWeightWithUnit(currentWeight, current.unidadPeso)} x ${currentReps}.`
+      };
+    }
+
+    const definitelyWorse = (currentWeight < referenceWeight && currentReps <= referenceReps)
+      || (currentReps < referenceReps && currentWeight <= referenceWeight);
+    if (definitelyWorse) {
+      return {
+        tone: "worse",
+        symbol: "↓",
+        message: "Peor que la vez pasada",
+        detail: `Bajaste frente a ${formatWeightWithUnit(referenceWeight, reference.unidadPeso)} x ${referenceReps}.`
+      };
+    }
+
+    const currentVolume = currentWeight * currentReps;
+    const referenceVolume = referenceWeight * referenceReps;
+    if (currentVolume === referenceVolume) {
+      return {
+        tone: "equal",
+        symbol: "-",
+        message: "Muy parejo",
+        detail: "Cambiaste peso o reps, pero el esfuerzo total quedó muy similar."
+      };
+    }
+
+    return currentVolume > referenceVolume
+      ? {
+          tone: "better",
+          symbol: "↑",
+          message: "Ligeramente mejor",
+          detail: "La combinación actual de peso y reps supera el trabajo total de la referencia."
+        }
+      : {
+          tone: "worse",
+          symbol: "↓",
+          message: "Ligeramente por debajo",
+          detail: "La combinación actual de peso y reps quedó por debajo del trabajo total anterior."
+        };
+  }
+
+  if (currentReps === referenceReps) {
+    return {
+      tone: "equal",
+      symbol: "-",
+      message: "Igual en reps",
+      detail: sameUnit
+        ? `Llevas las mismas reps que la referencia (${referenceReps}).`
+        : `Unidad distinta; comparación basada solo en reps (${referenceReps}).`
+    };
+  }
+
+  return currentReps > referenceReps
+    ? {
+        tone: "better",
+        symbol: "↑",
+        message: "Mejor en reps",
+        detail: sameUnit
+          ? `Hiciste más reps que la referencia: ${currentReps} vs ${referenceReps}.`
+          : `Unidad distinta; aun así vas mejor en reps: ${currentReps} vs ${referenceReps}.`
+      }
+    : {
+        tone: "worse",
+        symbol: "↓",
+        message: "Peor en reps",
+        detail: sameUnit
+          ? `Hiciste menos reps que la referencia: ${currentReps} vs ${referenceReps}.`
+          : `Unidad distinta; por ahora quedas por debajo en reps: ${currentReps} vs ${referenceReps}.`
+      };
 }
 
 async function handleSetSubmit(event) {
@@ -1959,8 +2158,16 @@ function formatSetLine(record) {
     return "sin datos";
   }
 
-  const weightText = record.peso === "" ? "sin peso" : `${record.peso} ${record.unidadPeso || "kg"}`;
+  const weightText = formatWeightWithUnit(record.peso, record.unidadPeso || "kg");
   return `${record.repsRealizadas} reps con ${weightText}`;
+}
+
+function formatWeightWithUnit(weight, unit = "kg") {
+  if (weight === "" || weight === null || weight === undefined || Number(weight) === 0) {
+    return "sin peso";
+  }
+
+  return `${formatAxisValue(Number(weight))} ${unit}`;
 }
 
 function getAllExerciseNames() {
