@@ -16,112 +16,112 @@ const PROGRESS_CATEGORY_LABELS = {
 
 const EXERCISE_LIBRARY = {
   "Press inclinado barra": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Incline-Barbell-Bench-Press_dc0c6279-d038-44f5-a682-54c2a5e2602c_600x600.png?v=1612137944",
+    image: "./assets/exercises/press-inclinado-barra.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/incline-barbell-bench-press",
     guideLabel: "Simply Fitness"
   },
   "Jalon al pecho amplio": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Wide-Grip-Pulldown_91fcba9b-47a2-4185-b093-aa542c81c55c_600x600.png?v=1612138105",
+    image: "./assets/exercises/jalon-pecho-amplio.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/wide-grip-pulldown",
     guideLabel: "Simply Fitness"
   },
   "Press banca plano": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Barbell-Bench-Press_0316b783-43b2-44f8-8a2b-b177a2cfcbfc_600x600.png?v=1612137800",
+    image: "./assets/exercises/press-banca-plano.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/barbell-bench-press",
     guideLabel: "Simply Fitness"
   },
   "Remo con barra": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Barbell-Row_4beb1d94-bac9-4538-9578-2d9cf93ef008_600x600.png?v=1612138201",
+    image: "./assets/exercises/remo-con-barra.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/barbell-row",
     guideLabel: "Simply Fitness"
   },
   "Elevaciones laterales": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Dumbbell-Lateral-Raise_31c81eee-81c4-4ffe-890d-ee13dd5bbf20_600x600.png?v=1612138523",
+    image: "./assets/exercises/elevaciones-laterales.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/dumbbell-lateral-raise",
     guideLabel: "Simply Fitness"
   },
   "Curl biceps": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Barbell-Curl_f38580d5-412e-4082-b453-5d319afa94fd_600x600.png?v=1612137128",
+    image: "./assets/exercises/curl-biceps.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/barbell-curl",
     guideLabel: "Simply Fitness"
   },
   "Triceps cuerda": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Cable-Rope-Pushdown_600x600.png?v=1612136916",
+    image: "./assets/exercises/triceps-cuerda.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/cable-rope-puschdown",
     guideLabel: "Simply Fitness"
   },
   "Sentadilla": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Squat_d752e42d-02ba-4692-b300-c6e67ad5a4f5_600x600.png?v=1612138811",
+    image: "./assets/exercises/sentadilla.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/squat",
     guideLabel: "Simply Fitness"
   },
   "Peso muerto rumano": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Barbell-Romanian-Deadlift_34ede1b4-63ac-451d-9536-bbf9942b560c_600x600.png?v=1621162957",
+    image: "./assets/exercises/peso-muerto-rumano.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/barbell-stiff-leg-deadlift",
     guideLabel: "Simply Fitness"
   },
   "Prensa": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Leg-Press_f7febd5c-75e5-42f4-9bb4-c938969ce293_600x600.png?v=1612138836",
+    image: "./assets/exercises/prensa.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/leg-press",
     guideLabel: "Simply Fitness"
   },
   "Curl femoral": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Lying-Leg-Curl_203153d8-79dd-4bb9-9125-708aa4327107_600x600.png?v=1612139013",
+    image: "./assets/exercises/curl-femoral.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/lying-leg-curl",
     guideLabel: "Simply Fitness"
   },
   "Elevaciones de piernas": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Hanging-Leg-Raise_36986393-d0a6-494a-981f-4ea06a99b0b5_600x600.png?v=1612138457",
+    image: "./assets/exercises/elevaciones-piernas.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/hanging-leg-raise",
     guideLabel: "Simply Fitness"
   },
   "Plancha": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Plank_3a82d566-9cb2-4c20-b301-bc8bd635c4d1_600x600.png?v=1612138431",
+    image: "./assets/exercises/plancha.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/plank",
     guideLabel: "Simply Fitness"
   },
   "Press hombro": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Seated-Barbell-Shoulder-Press_600x600.png?v=1619977796",
+    image: "./assets/exercises/press-hombro.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/seated-barbell-shoulder-press",
     guideLabel: "Simply Fitness"
   },
   "Jalon al pecho": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Close-Grip-Pulldown_072bb5ce-e3d9-4007-b8d2-d343e9d1051b_600x600.png?v=1612138178",
+    image: "./assets/exercises/jalon-pecho.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/close-grip-pulldown",
     guideLabel: "Simply Fitness"
   },
   "Remo maquina": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Seated-Cable-Row_9470fa48-f0d1-40b1-a980-caee9e6f2e53_600x600.png?v=1612138127",
+    image: "./assets/exercises/remo-maquina.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/seated-cable-row",
     guideLabel: "Simply Fitness"
   },
   "Face pull": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/High-Cable-Rear-Delt-Fly_600x600.png?v=1612541996",
+    image: "./assets/exercises/face-pull.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/high-cable-rear-delt-fly",
     guideLabel: "Simply Fitness"
   },
   "Curl martillo": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Hammer-Curl_da9fea8b-fc81-4a4f-9af1-aea1b85239d7_600x600.png?v=1612137282",
+    image: "./assets/exercises/curl-martillo.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/hammer-curl",
     guideLabel: "Simply Fitness"
   },
   "Triceps": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Cable-Rope-Pushdown_600x600.png?v=1612136916",
+    image: "./assets/exercises/triceps-cuerda.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/cable-rope-puschdown",
     guideLabel: "Simply Fitness"
   },
   "Hip thrust": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Barbell-Hip-Thrust_600x600.png?v=1656402338",
+    image: "./assets/exercises/hip-thrust.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/barbell-hip-thrust",
     guideLabel: "Simply Fitness"
   },
   "Zancadas": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Lunge_600x600.png?v=1612138903",
+    image: "./assets/exercises/zancadas.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/lunge",
     guideLabel: "Simply Fitness"
   },
   "Gemelos": {
-    image: "https://cdn.shopify.com/s/files/1/0269/5551/3900/files/Standing-Calf-Raise_61746b47-98aa-49ee-bb97-5a19562592b9_600x600.png?v=1612137090",
+    image: "./assets/exercises/gemelos.png",
     guideUrl: "https://www.simplyfitness.com/es/pages/standing-calf-raise",
     guideLabel: "Simply Fitness"
   },
@@ -136,7 +136,7 @@ const EXERCISE_LIBRARY = {
     guideLabel: ""
   },
   "Abdomen + vacuum": {
-    image: "https://workoutlabs.com/train/svg.php?id=85172",
+    image: "./assets/exercises/abdomen-vacuum.svg",
     guideUrl: "https://workoutlabs.com/exercise-guide/seated-vacuum/",
     guideLabel: "WorkoutLabs"
   }

@@ -1,4 +1,4 @@
-const VERSION = "gym-tracker-v1";
+const VERSION = "gym-tracker-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const APP_SHELL = [
@@ -11,7 +11,29 @@ const APP_SHELL = [
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",
   "./icons/apple-touch-icon.svg",
-  "./assets/offline-exercise.svg"
+  "./assets/offline-exercise.svg",
+  "./assets/exercises/abdomen-vacuum.svg",
+  "./assets/exercises/curl-biceps.png",
+  "./assets/exercises/curl-femoral.png",
+  "./assets/exercises/curl-martillo.png",
+  "./assets/exercises/elevaciones-laterales.png",
+  "./assets/exercises/elevaciones-piernas.png",
+  "./assets/exercises/face-pull.png",
+  "./assets/exercises/gemelos.png",
+  "./assets/exercises/hip-thrust.png",
+  "./assets/exercises/jalon-pecho-amplio.png",
+  "./assets/exercises/jalon-pecho.png",
+  "./assets/exercises/peso-muerto-rumano.png",
+  "./assets/exercises/plancha.png",
+  "./assets/exercises/prensa.png",
+  "./assets/exercises/press-banca-plano.png",
+  "./assets/exercises/press-hombro.png",
+  "./assets/exercises/press-inclinado-barra.png",
+  "./assets/exercises/remo-con-barra.png",
+  "./assets/exercises/remo-maquina.png",
+  "./assets/exercises/sentadilla.png",
+  "./assets/exercises/triceps-cuerda.png",
+  "./assets/exercises/zancadas.png"
 ];
 
 self.addEventListener("install", (event) => {
