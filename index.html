@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gym Tracker Aesthetic</title>
+  <meta name="theme-color" content="#0c1118">
+  <meta name="description" content="Gym tracker instalable y listo para usar offline con sincronización a Google Sheets.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gym Tracker">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -43,6 +51,12 @@
             <span class="metric-label">Pendientes sync</span>
             <strong id="pending-count">0</strong>
           </div>
+        </div>
+        <div class="hero-actions">
+          <div id="connection-status" class="connection-status online">Online y listo para sincronizar</div>
+          <button id="install-app-btn" class="secondary-button hidden" type="button">
+            Instalar app
+          </button>
         </div>
         <button id="retry-sync-btn" class="secondary-button" type="button">
           Reintentar envíos pendientes

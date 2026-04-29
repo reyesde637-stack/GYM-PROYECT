@@ -255,7 +255,9 @@ const state = {
   deletingRecordId: "",
   deleteCandidateId: "",
   calendarViewDate: getMonthStart(new Date()),
-  activeSummaryDate: ""
+  activeSummaryDate: "",
+  deferredInstallPrompt: null,
+  isOnline: navigator.onLine
 };
 
 const elements = {};
@@ -263,6 +265,8 @@ const elements = {};
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
   bindEvents();
+  registerServiceWorker();
+  setupPwaExperience();
   renderCurrentDate();
   renderDayCards();
   renderSelectedDay();
@@ -279,6 +283,8 @@ function cacheElements() {
   elements.currentDate = document.getElementById("current-date");
   elements.completedSetsCount = document.getElementById("completed-sets-count");
   elements.pendingCount = document.getElementById("pending-count");
+  elements.connectionStatus = document.getElementById("connection-status");
+  elements.installAppBtn = document.getElementById("install-app-btn");
   elements.retrySyncBtn = document.getElementById("retry-sync-btn");
   elements.openCalendarBtn = document.getElementById("open-calendar-btn");
   elements.refreshHistoryBtn = document.getElementById("refresh-history-btn");
@@ -331,6 +337,7 @@ function cacheElements() {
 
 function bindEvents() {
   elements.retrySyncBtn.addEventListener("click", () => retryPendingRecords(true));
+  elements.installAppBtn.addEventListener("click", installPwa);
   elements.openCalendarBtn.addEventListener("click", openCalendarModal);
   elements.refreshHistoryBtn.addEventListener("click", refreshHistoryFromServer);
   elements.refreshProgressBtn.addEventListener("click", () => refreshProgressFromServer(true));
@@ -408,6 +415,86 @@ function bindEvents() {
       closeCalendarModal();
     }
   });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  window.addEventListener("load", async () => {
+    try {
+      await navigator.serviceWorker.register("./service-worker.js");
+    } catch (error) {
+      console.error("No se pudo registrar el service worker:", error);
+    }
+  });
+}
+
+function setupPwaExperience() {
+  updateConnectionStatus();
+  updateInstallButtonVisibility();
+
+  window.addEventListener("online", handleWentOnline);
+  window.addEventListener("offline", handleWentOffline);
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    state.deferredInstallPrompt = event;
+    updateInstallButtonVisibility();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    state.deferredInstallPrompt = null;
+    updateInstallButtonVisibility();
+    showToast("La app quedó instalada en tu dispositivo.", "success");
+  });
+}
+
+function updateConnectionStatus() {
+  state.isOnline = navigator.onLine;
+  elements.connectionStatus.textContent = state.isOnline
+    ? "Online y listo para sincronizar"
+    : "Modo offline activo";
+  elements.connectionStatus.className = `connection-status ${state.isOnline ? "online" : "offline"}`;
+}
+
+function updateInstallButtonVisibility() {
+  if (state.deferredInstallPrompt) {
+    elements.installAppBtn.classList.remove("hidden");
+    return;
+  }
+
+  elements.installAppBtn.classList.add("hidden");
+}
+
+async function installPwa() {
+  if (!state.deferredInstallPrompt) {
+    showToast("Abre la app desde el navegador del teléfono y usa instalar o agregar a pantalla de inicio.", "error");
+    return;
+  }
+
+  state.deferredInstallPrompt.prompt();
+  const choiceResult = await state.deferredInstallPrompt.userChoice;
+  state.deferredInstallPrompt = null;
+  updateInstallButtonVisibility();
+
+  if (choiceResult && choiceResult.outcome === "accepted") {
+    showToast("Instalación iniciada.", "success");
+  }
+}
+
+function handleWentOnline() {
+  updateConnectionStatus();
+  retryPendingRecords(false);
+  refreshHistoryFromServer(false);
+  refreshProgressFromServer(false);
+  showToast("Conexión restablecida. Intentando sincronizar pendientes.", "success");
+}
+
+function handleWentOffline() {
+  updateConnectionStatus();
+  showToast("Modo offline activo. Tus sets se guardarán como pendientes.", "error");
 }
 
 function renderCurrentDate() {
@@ -810,6 +897,10 @@ async function sendRecordToAppsScript(record) {
     return { success: false };
   }
 
+  if (!navigator.onLine) {
+    return { success: false };
+  }
+
   try {
     // text/plain evita preflight innecesario y Apps Script recibe el JSON como texto.
     const response = await fetch(APPS_SCRIPT_URL, {
@@ -835,9 +926,18 @@ async function sendRecordToAppsScript(record) {
   }
 }
 
-async function refreshHistoryFromServer() {
+async function refreshHistoryFromServer(showFeedback = true) {
   if (!isAppsScriptConfigured()) {
-    showToast("Primero configura la URL del Web App en script.js.", "error");
+    if (showFeedback) {
+      showToast("Primero configura la URL del Web App en script.js.", "error");
+    }
+    return;
+  }
+
+  if (!navigator.onLine) {
+    if (showFeedback) {
+      showToast("Estás offline. Mostrando el historial guardado localmente.", "error");
+    }
     return;
   }
 
@@ -862,10 +962,14 @@ async function refreshHistoryFromServer() {
     populateProgressExerciseSelect();
     renderProgressChart();
     updateDashboardCounts();
-    showToast("Historial actualizado desde Google Sheets.", "success");
+    if (showFeedback) {
+      showToast("Historial actualizado desde Google Sheets.", "success");
+    }
   } catch (error) {
     console.error(error);
-    showToast("No fue posible actualizar el historial remoto.", "error");
+    if (showFeedback) {
+      showToast("No fue posible actualizar el historial remoto.", "error");
+    }
   }
 }
 
@@ -904,6 +1008,13 @@ async function retryPendingRecords(showFeedback = true) {
     updateDashboardCounts();
     if (showFeedback && !isAppsScriptConfigured()) {
       showToast("Configura la URL del Web App para sincronizar pendientes.", "error");
+    }
+    return;
+  }
+
+  if (!navigator.onLine) {
+    if (showFeedback) {
+      showToast("Sin internet. Los sets seguirán como pendientes hasta reconectar.", "error");
     }
     return;
   }
@@ -1110,6 +1221,13 @@ async function refreshProgressFromServer(showFeedback = true) {
   if (!isAppsScriptConfigured()) {
     if (showFeedback) {
       showToast("Configura la URL del Web App para cargar progreso.", "error");
+    }
+    return;
+  }
+
+  if (!navigator.onLine) {
+    if (showFeedback) {
+      showToast("Estás offline. El progreso visible viene del almacenamiento local.", "error");
     }
     return;
   }
@@ -1578,7 +1696,29 @@ function parseSetsLabel(label) {
 }
 
 function buildPlaceholderImage(name) {
-  return `https://placehold.co/600x400/101820/EAF2F9?text=${encodeURIComponent(name)}`;
+  const label = String(name || "Ejercicio")
+    .replace(/[&<>"']/g, "")
+    .slice(0, 42);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+      <defs>
+        <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+          <stop offset="0%" stop-color="#101820"/>
+          <stop offset="100%" stop-color="#1c2733"/>
+        </linearGradient>
+      </defs>
+      <rect width="600" height="400" rx="28" fill="url(#bg)"/>
+      <circle cx="470" cy="88" r="64" fill="#c7ff6b" opacity="0.12"/>
+      <circle cx="112" cy="302" r="88" fill="#58adff" opacity="0.1"/>
+      <text x="50%" y="46%" fill="#edf2f7" font-family="Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle">
+        Gym Tracker
+      </text>
+      <text x="50%" y="58%" fill="#9ba9bb" font-family="Arial, sans-serif" font-size="22" text-anchor="middle">
+        ${label}
+      </text>
+    </svg>
+  `;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 function getRecordsForDate(dateString) {

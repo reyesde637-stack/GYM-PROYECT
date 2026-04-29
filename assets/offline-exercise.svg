@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#101820"/>
+      <stop offset="100%" stop-color="#1c2733"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" rx="28" fill="url(#bg)"/>
+  <circle cx="470" cy="88" r="64" fill="#c7ff6b" opacity="0.12"/>
+  <circle cx="112" cy="302" r="88" fill="#58adff" opacity="0.1"/>
+  <text x="50%" y="45%" fill="#edf2f7" font-family="Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle">
+    Gym Tracker
+  </text>
+  <text x="50%" y="58%" fill="#9ba9bb" font-family="Arial, sans-serif" font-size="22" text-anchor="middle">
+    Imagen no disponible offline
+  </text>
+</svg>
